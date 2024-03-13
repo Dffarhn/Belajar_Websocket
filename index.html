@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Chat</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    /* Custom Styles */
+    .custom-input {
+      border-color: #4F46E5;
+    }
+    .custom-button {
+      background-color: #4F46E5;
+    }
+    .custom-button:hover {
+      background-color: #4338CA;
+    }
+
+     /* Typing Animation */
+     @keyframes typing {
+      from {
+        width: 0;
+      }
+    }
+    .typing-animation {
+      overflow: hidden;
+      border-right: .15em solid orange; /* The typwriter cursor */
+      white-space: nowrap; /* Keeps the content on a single line */
+      animation: typing 1s steps(10, end) infinite;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-purple-200 to-purple-300 min-h-screen flex flex-col justify-center items-center p-6">
+  <h1 class="text-3xl font-semibold text-purple-800 mb-8"><span id="typingAnimation" class="typing-animation"></span></h1>
+
+  <!-- Create Room Section -->
+  <div class="mb-6">
+    <input type="text" id="roomInputcreate" placeholder="Enter room name..." class="custom-input rounded-lg px-4 py-2 w-72 focus:outline-none focus:border-blue-400">
+    <button onclick="createRoom()" class="custom-button text-white font-semibold px-4 py-2 ml-2 rounded-lg">Create Room</button>
+  </div>
+
+  <!-- Join Room Section -->
+  <div class="mb-6">
+    <select id="roomSelect" class="custom-input rounded-lg px-4 py-2 w-72 focus:outline-none focus:border-blue-400">
+      <!-- You can add options dynamically using JavaScript -->
+    </select>
+    <button onclick="joinRoom()" class="custom-button text-white font-semibold px-4 py-2 ml-2 rounded-lg">Join Room</button>
+  </div>
+
+  <!-- Room Info Section -->
+  <div id="roomInfo" class="mb-6 hidden">
+    <p class="font-semibold text-lg text-purple-800">You are currently in the room:</p>
+    <p id="currentRoom" class="text-lg font-bold text-purple-700"></p>
+  </div>
+
+  <!-- Chat Messages Section -->
+  <div id="chatMessages" class="overflow-y-auto h-64 bg-white rounded-lg shadow-md p-4 mb-6 w-96 scrollbar-thin scrollbar-thumb-purple-400 scrollbar-track-purple-200">
+    <!-- Isi chatMessages -->
+  </div>
+
+  <!-- Message Input Section -->
+  <div class="flex">
+    <input type="text" id="messageInput" placeholder="Type your message..." class="custom-input rounded-l-lg px-4 py-2 w-96 focus:outline-none focus:border-blue-400" onkeypress="handleKeyPress(event)">
+    <button onclick="sendMessage()" class="custom-button text-white font-semibold rounded-r-lg px-4 py-2 ml-2">Send</button>
+  </div>
+
+  <script src="https://cdn.socket.io/4.3.1/socket.io.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Faker/3.1.0/faker.min.js"></script>
+  <script>
+    const typingElement = document.getElementById("typingAnimation");
+    const titleText = "WebSocket Chat";
+    let index = 0;
+
+    function typeWriter() {
+      if (index < titleText.length) {
+        typingElement.textContent += titleText.charAt(index);
+        index++;
+        setTimeout(typeWriter, 150); // Adjust typing speed here (in milliseconds)
+      }
+    }
+
+    // Start typing animation when the page loads
+    window.onload = typeWriter;
+
+    const socket = io();
+    const userId = generateUserId(); // Membuat ID pengguna secara acak
+    const username = faker.internet.userName(); 
+
+    // Function untuk menghasilkan ID pengguna
+    function generateUserId() {
+      return Math.random().toString(36).substr(2, 9);
+    }
+
+    socket.emit("setUserId", username);
+    const roomSelect = document.getElementById("roomSelect");
+
+// Listen for the 'roomsList' event to populate the dropdown with available rooms
+    socket.on("roomsList", (rooms) => {
+      // Clear existing options
+      roomSelect.innerHTML = "";
+
+      console.log(rooms)
+
+      // Add options for each room
+      rooms.forEach(room => {
+        const option = document.createElement("option");
+        option.text = room;
+        option.value = room;
+        roomSelect.appendChild(option);
+      });
+    });
+
+    const roomInfo = document.getElementById("roomInfo");
+    const currentRoom = document.getElementById("currentRoom");
+
+      // Listen for the 'connectionroom' event to display room information
+      socket.on("connectionroom", (room) => {
+        currentRoom.textContent = room;
+        roomInfo.classList.remove("hidden");
+      });
+  
+
+    function createRoom() {
+      const roomInput = document.getElementById("roomInputcreate");
+      const roomName = roomInput.value.trim();
+      if (roomName !== "") {
+        socket.emit("createRoom", roomName); // Emit the createRoom event with the room name
+        roomInput.value = ""; // Clear the room input field after creating the room
+      }
+    }
+
+
+    function joinRoom() {
+      const roomName = roomSelect.value.trim();
+      if (roomName !== "") {
+
+        const chatMessages = document.getElementById("chatMessages");
+        chatMessages.innerHTML = "";
+        
+        socket.emit("joinRoom", roomName); // Emit the 'joinRoom' event with the selected room name
+        console.log(currentRoom.textContent)
+        socket.emit("leaveRoom", currentRoom.textContent);
+      } else {
+        console.log("Please select a room.");
+      }
+    }
+
+    // Function untuk menambahkan pesan baru ke dalam chatMessages
+    function appendMessage(sender, message, isLocalSender) {
+      const chatMessages = document.getElementById("chatMessages");
+      const messageElement = document.createElement("div");
+      messageElement.className = `flex items-center mb-2 ${isLocalSender ? 'justify-end' : 'justify-start'}`;
+      messageElement.innerHTML = `
+        <div class="flex-shrink-0">
+          <img class="h-8 w-8 rounded-full" src="https://via.placeholder.com/150" alt="User Avatar">
+        </div>
+        <div class="ml-2">
+          <div class="text-sm font-medium text-gray-800">${sender}</div>
+          <div class="text-sm text-gray-600">${message}</div>
+        </div>
+      `;
+      chatMessages.appendChild(messageElement);
+
+      // Scroll ke bawah
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Event listener untuk menampilkan pesan yang diterima
+    socket.on("chatMessage", ({ sender, message, senderId,room }) => {
+      // Jika pengirim pesan bukan pengguna lokal, tampilkan pesan
+      if (senderId !== userId) {
+        console.log(room)
+        appendMessage(sender, message, false);
+      }
+    });
+
+    // Mengirim pesan saat menekan tombol Enter di input pesan
+    function handleKeyPress(event) {
+      if (event.key === "Enter") {
+        sendMessage();
+      }
+    }
+
+    function sendMessage() {
+      const messageInput = document.getElementById("messageInput");
+      const message = messageInput.value.trim();
+      const roomName = roomSelect.value.trim();
+
+      if (message !== "") {
+        socket.emit("chatMessage", { sender: username, message, senderId: userId, room:roomName });
+        appendMessage(username, message, true);
+        messageInput.value = "";
+      }
+    }
+  </script>
+</body>
+</html>
