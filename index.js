@@ -43,8 +43,11 @@ io.on("connection", (socket) => {
   // Event ketika pengguna terputus
   socket.on("disconnect", () => {
     console.log("User disconnected");
+
     // Menghapus ID pengguna yang terkait dengan soket yang terputus
     delete users[socket.id];
+    io.emit("userDisconnected",users);
+
   });
 
   socket.on("leaveRoom", (room) => {
@@ -72,19 +75,27 @@ io.on("connection", (socket) => {
     socket.to(room).emit("chatMessage", { sender, message, senderId,room });
 
     console.log(senderId);
-});
+  });
 
   // Menyimpan ID pengguna yang terkait dengan soket
   socket.on("setUserId", (username) => {
 
     console.log(username);
     users[socket.id] = username;
+    io.emit("userConnected", users)
   });
+
+  socket.on("GetOnlineUsers", () => {
+    // Send the list of online users to the client
+    socket.emit("userConnected", users);
+  });
+
 
   socket.on('createRoom', (roomName) => {
     const roomId = uuidv4(); // Menghasilkan UUID baru
     rooms[roomName] = roomId; // Menyimpan nama ruangan dengan UUID sebagai kunci
     console.log(`Room ${roomName} created with ID ${roomId}.`);
+    io.emit("roomsList", Object.keys(rooms));
   });
 });
 
