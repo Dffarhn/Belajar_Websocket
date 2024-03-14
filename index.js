@@ -32,7 +32,7 @@ app.get('/get-cookie', (req, res) => {
 app.get("/", (req, res) => {
 
   res.cookie('user', 'JohnDoe', { maxAge: 900000, httpOnly: true });
-  res.sendFile(__dirname + "/index.html"); // Mengirimkan file HTML untuk halaman utama
+  res.sendFile(__dirname + "/views/index.html"); // Mengirimkan file HTML untuk halaman utama
 });
 
 io.on("connection", (socket) => {

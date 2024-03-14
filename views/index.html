@@ -209,13 +209,10 @@
 
     // Listen for 'userConnected' event to update the list of online users
     // Menunggu hingga seluruh dokumen HTML telah dimuat
-    document.addEventListener("DOMContentLoaded", () => {
+    const namapengguna = username
 
-      console.log("Listening")
-
-      socket.emit("GetOnlineUsers")
-      // Letakkan kode socket.on("userConnected") di sini
-      socket.on("userConnected", (username) => {
+    function listonline(username) {
+      {
         // Hapus semua elemen anak dari userList sebelum menambahkan yang baru
         while (userList.firstChild) {
           userList.removeChild(userList.firstChild);
@@ -226,38 +223,49 @@
 
         // Iterasi melalui daftar nilai dan tambahkan setiap pengguna ke dalam userList
         values.forEach(value => {
-          const userItem = document.createElement("li");
-          userItem.textContent = value;
-          userList.appendChild(userItem);
+
+          if(value === namapengguna){
+
+          }else{
+
+            const userItem = document.createElement("li");
+            userItem.textContent = value;
+            userList.appendChild(userItem);
+  
+  
+              // Membuat tombol "Chat Pribadi"
+            const privateChatButton = document.createElement("button");
+            privateChatButton.textContent = "Chat Pribadi";
+            privateChatButton.addEventListener("click", () => {
+              console.log("ini fungsi chat pribadi") // Panggil fungsi untuk memulai percakapan pribadi
+          });
+  
+            // Memasukkan tombol "Chat Pribadi" ke dalam elemen <li>
+            userItem.appendChild(privateChatButton);
+          }
+
         });
 
         // Tampilkan bagian onlineUsers jika sebelumnya tersembunyi
         onlineUsers.classList.remove("hidden");
-      });
-    });
+      }
+    }
     
 
+    
+    
+    document.addEventListener("DOMContentLoaded", () => {
+
+      console.log("Listening")
+
+      socket.emit("GetOnlineUsers")
+      // Letakkan kode socket.on("userConnected") di sini
+      socket.on("userConnected", (username) => {
+        listonline(username)});
+    });
     // Listen for 'userDisconnected' event to remove the disconnected user from the list
     socket.on("userDisconnected", (username) => {
-
-      console.log("User disconnected detected");
-      // Hapus semua elemen anak dari userList sebelum menambahkan yang baru
-      while (userList.firstChild) {
-        userList.removeChild(userList.firstChild);
-      }
-
-      // Jika username adalah objek, gunakan Object.values() untuk mendapatkan daftar nilai
-      const values = typeof username === 'object' ? Object.values(username) : [username];
-
-      // Iterasi melalui daftar nilai dan tambahkan setiap pengguna ke dalam userList
-      values.forEach(value => {
-        const userItem = document.createElement("li");
-        userItem.textContent = value;
-        userList.appendChild(userItem);
-      });
-
-      // Tampilkan bagian onlineUsers jika sebelumnya tersembunyi
-      onlineUsers.classList.remove("hidden");
+      listonline(username)
     });
   </script>
 </body>
