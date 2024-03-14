@@ -2,12 +2,15 @@ const express = require("express");
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 const { v4: uuidv4 } = require('uuid');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   /* options */
 });
+
+app.use(cookieParser());
 
 // Objek untuk menyimpan ID pengguna dan soket mereka
 const users = {};
@@ -17,7 +20,18 @@ const users = {};
 const rooms ={};
 
 
+app.get('/get-cookie', (req, res) => {
+  // Mengambil nilai cookie dengan nama 'user'
+  const userCookie = req.cookies.user;
+
+  // Lakukan sesuatu dengan nilai cookie
+  res.send(`Nilai cookie 'user': ${userCookie}`);
+});
+
+
 app.get("/", (req, res) => {
+
+  res.cookie('user', 'JohnDoe', { maxAge: 900000, httpOnly: true });
   res.sendFile(__dirname + "/index.html"); // Mengirimkan file HTML untuk halaman utama
 });
 
